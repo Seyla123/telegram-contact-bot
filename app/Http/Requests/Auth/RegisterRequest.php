@@ -23,7 +23,19 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => 'required',
-            'email' => 'required|email|unique:users',
+            'email' => [
+                'required',
+                'email',
+                function ($attribute, $value, $fail) {
+                    $existingUser = \App\Models\User::where('email', $value)
+                        ->where('password', "=", null)
+                        ->first();
+
+                    if ($existingUser) {
+                        $fail(__('validation.unique'));
+                    }
+                }
+            ],
             'password' => 'required|min:8',
             'confirm_password' => 'required|same:password'
         ];

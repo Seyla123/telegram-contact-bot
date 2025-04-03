@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class AuthService
@@ -136,10 +137,18 @@ class AuthService
      */
     public function attemptLogin(array $credentials): array|false
     {
+        // Check if user exists
+        // $user = User::where('email', $credentials['email'])->where('password', "!=", null)->first();
+        // if ($user) {
+        //     dd($user);
+        //     return false;
+        // }
+
         if (Auth::attempt($credentials)) {
-            $oAuthToken = $this->getTokenAndRefreshToken($credentials['email'], $credentials['password']);
-            return $oAuthToken;
+
+            return $this->getTokenAndRefreshToken($credentials['email'], $credentials['password']);
         }
+        
         return false;
     }
 
@@ -214,7 +223,7 @@ class AuthService
             $this->revokeToken($tokenId);
             return true;
         } catch (\Throwable $th) {
-            \Log::error("Token revocation failed: " . $th->getMessage());
+            Log::error("Token revocation failed: " . $th->getMessage());
             return false;
         }
     }
