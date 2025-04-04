@@ -1,127 +1,29 @@
-# Laravel Passport Authentication API
+# Telegram Data Collect Bot API
 
-A robust REST API authentication system built with Laravel and OAuth2 using Laravel Passport. This project provides secure user authentication with access tokens and refresh token functionality.
+A Laravel-based backend API to collect and manage user contacts/messages from Telegram bots, designed for e-commerce or lead generation.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-8892BF.svg)](https://php.net/)
 
 ## Features
 
--   User registration and authentication
--   OAuth2 token-based authentication using Laravel Passport
--   Secure token refresh mechanism
--   Token revocation on logout
--   JSON response format for all endpoints
+-   📞 **Contact Collection**: Saves Telegram user profiles (ID, name, phone, username)
+-   💬 **Message Storage**: Logs all user-bot interactions
+-   🔄 **Two-Way Sync**: Reply to users via API
 
-## Requirements
+## Quick Start
 
--   PHP >= 8.1
--   Laravel 10.x
--   Composer
--   MySQL/PostgreSQL
+### Prerequisites
 
-## Installation
+-   PHP 8.1+, Laravel 9+, MySQL/PostgreSQL
+-   Telegram Bot Token ([@BotFather](https://t.me/BotFather))
 
-1. Clone the repository
+### Installation
 
 ```bash
-git clone <your-repository-url>
-cd auth-api-laravel-passport
-```
-
-2. Install dependencies
-
-```bash
+git clone https://github.com/yourusername/telegram-data-collect-bot.git
+cd telegram-data-collect-bot
+cp .env.example .env  # Configure DB and Telegram vars
 composer install
-```
-
-3. Configure environment variables
-
-```bash
-cp .env.example .env
-# Update database credentials in .env file
-```
-
-4. Generate application key
-
-```bash
-php artisan key:generate
-```
-
-5. Run migrations
-
-```bash
 php artisan migrate
-```
-
-6. Install Laravel Passport
-
-```bash
-php artisan passport:install
-```
-
-## API Endpoints
-
-### Authentication
-
-#### Register
-
-```
-POST /api/v1/auth/register
-Content-Type: application/json
-
-{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "your-password"
-}
-```
-
-#### Login
-
-```
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-    "email": "john@example.com",
-    "password": "your-password"
-}
-```
-
-#### Logout
-
-```
-POST /api/v1/auth/logout
-Authorization: Bearer {access_token}
-```
-
-#### Refresh Token
-
-```
-POST /api/v1/auth/refresh
-# Refresh token is automatically handled through HTTP-only cookie
-```
-
-#### Get User Profile
-
-```
-GET /api/v1/user
-Authorization: Bearer {access_token}
-```
-
-## Security
-
--   Access tokens are sent via Authorization header
--   Refresh tokens are handled securely through HTTP-only cookies
--   Passwords are hashed using bcrypt
--   Token revocation on logout
-
-## Error Handling
-
-The API returns appropriate HTTP status codes and error messages in JSON format:
-
-```json
-{
-    "success": false,
-    "message": "Error message here",
-    "data": null
-}
 ```
