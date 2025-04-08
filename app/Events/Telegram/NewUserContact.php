@@ -1,21 +1,19 @@
 <?php
 
-namespace App\Events\auth;
+namespace App\Events\Telegram;
 
-use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserRegistered
+class NewUserContact
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(public User $user)
+    public function __construct(public $chatId)
     {
-        \Log::info('UserRegistered event dispatched');
     }
 }

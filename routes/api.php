@@ -4,6 +4,7 @@ use App\Http\Controllers\v1\Auth\AuthController;
 use App\Http\Controllers\v1\Auth\SocialAuthController;
 use App\Http\Controllers\v1\Auth\VerifyEmailController;
 use App\Http\Controllers\v1\Profile\ProfileController;
+use App\Http\Controllers\v1\Telegram\TelegramController;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -70,5 +71,26 @@ Route::prefix('v1')->group(function () {
                 Route::post('/avatar', [ProfileController::class, 'updateAvatar']);
             });
         });
+        
+        /**
+         * ┌──────────────────────┐
+         * │ Telegram Routes      │
+         * └──────────────────────┘
+         * 
+         */
+    });
+    Route::prefix('telegram')->group(function () {
+
+        // config webhook
+        Route::post('setWebhook', [TelegramController::class, 'setWebhook']);
+
+        Route::get('getFile/{fileId}', [TelegramController::class, 'getFile']);
+        Route::get('update', [TelegramController::class, 'telegramUpdate']);
+
+        Route::get('bot', [TelegramController::class, 'getBot']);
+        Route::post('webhook', [TelegramController::class, 'webhook']);
+        Route::get('contact', [TelegramController::class, 'getAllContact']);
+
+        // for test me
     });
 });
