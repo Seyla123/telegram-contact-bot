@@ -4,20 +4,20 @@ namespace App\Services\Telegram;
 use App\Events\Telegram\NewUserContact;
 use App\Models\Contact;
 use Telegram\Bot\Laravel\Facades\Telegram;
-use Telegram\Bot\Keyboard\Keyboard;
 use Illuminate\Contracts\Filesystem\Factory as Storage;
 
 class TelegramService
 {
     private $chatId;
     private $userId;
+    private $contact;
     public function __construct(
         protected Storage $storage,
         private FileProccessService $fileProccessService,
     ) {
     }
 
-    public function handle($update)
+    public function webhook($update)
     {
         $message = $update->getMessage();
         $from = $message->getFrom();
@@ -29,10 +29,10 @@ class TelegramService
         }
 
         // if contact does not exist, create new contact
-        $contact = Contact::where('id', $this->chatId)->first();
-        \Log::info('contact  : ', ['contact' => $contact]);
-        if (!$contact) {
-            Contact::create([
+        $this->contact = Contact::where('id', $this->chatId)->first();
+        \Log::info('contact  : ', ['contact' => $this->contact]);
+        if (!$this->contact) {
+            $this->contact = Contact::create([
                 'id' => $this->userId,
                 'first_name' => $from->getFirstName(),
                 'last_name' => $from->getLastName(),
@@ -43,61 +43,9 @@ class TelegramService
 
         \Log::info('get type ', ['type' => $message->getType()]);
 
-        // Handle phone number sharing
-        if ($message->has('contact')) {
-            \Log::info('contact shared: ', ['message' => $message]);
-            $this->handleContactShared($message);
-        }
+        $this->handleMessageType($message);
 
-        if ($message->has('location')) {
-            \Log::info('location shared: ', ['message' => $message]);
-        }
-
-        if ($message->has('photo')) {
-            \Log::info('photo shared: ', ['message' => $message]);
-        }
-
-        if ($message->has('voice')) {
-            \Log::info('voice shared: ', ['message' => $message]);
-        }
-
-        if ($message->has('video')) {
-            \Log::info('video shared: ', ['message' => $message]);
-        }
-        if ($message->has('document')) {
-            \Log::info('Document', ['message' => $message]);
-        }
-        if ($message->has('animation')) {
-            \Log::info('animation', ['message' => $message]);
-        }
-        if ($message->has('audio')) {
-            \Log::info('audio', ['message' => $message]);
-        }
-        if ($message->has('sticker')) {
-            \Log::info('sticker', ['message' => $message]);
-        }
-
-        // Save message (excluding command)
-        if (!str_starts_with($message->getText(), '/')) {
-
-            if ($message->has('photo')) {
-                $this->savePhotoMessage($contact, $message->getPhoto(), $message->getCaption(), $message->getDate());
-            }
-            // save inbound message
-            $isSaveSuccess = $this->saveTelegramMessage($this->userId, $message);
-
-            // send message
-            if ($isSaveSuccess) {
-                Telegram::sendMessage([
-                    'chat_id' => $this->chatId,
-                    'text' => "Message received \nmessage: " . $message->getText()
-                ]);
-            }
-        }
-        Telegram::sendMessage([
-            'chat_id' => $this->chatId,
-            'text' => json_encode($message, JSON_PRETTY_PRINT)
-        ]);
+        return true;
     }
 
     private function handleContactShared($message)
@@ -120,69 +68,174 @@ class TelegramService
         ]);
     }
 
-    private function saveTelegramMessage($userId, $message)
+    private function handlePhotoMessage($message)
     {
-        $contact = Contact::where('id', $userId)->first();
+        $photos = $message->getPhoto();
+        $caption = $message->getCaption();
+        $sentAt = $message->getDate();
 
-        if (!$contact) {
-            \Log::warning("Telegram user ID not found in contacts", ['telegram_user_id' => $userId]);
-            return false;
-        }
+        \Log::info('handlePhoto', ['photos' => $photos, 'caption' => $caption, 'sentAt' => $sentAt]);
+        // Save the photo message
+        $photo = $this->savePhotoMessage($this->contact, $photos, $caption, $sentAt);
+
+        \Log::info('photo: ', ['photo' => $photo]);
+
+        return $photo;
+
     }
 
+    private function handleTextMessage($message)
+    {
+        $text = $message->getText();
+        $sentAt = $message->getDate();
+        return $this->saveTextMessage($this->contact, $text, $sentAt);
+    }
 
     /**
-     * Save photo message from Telegram
-     * 
-     * @param Contact $contact
-     * @param array $photos
-     * @param string|null $caption
-     * @param string $sentAt
-     * @return mixed
+     * Save text message from Telegram
      */
-    public function savePhotoMessage(Contact $contact, $getPhoto, ?string $caption, string $sentAt)
+    private function saveTextMessage(Contact $contact, $text, $sentAt)
     {
-        if (empty($photos)) {
-            return null;
-        }
-
-        $photo = $getPhoto->toArray();
-        $lastPhoto = end($photo);
-        $fileId = $lastPhoto['file_id'];
-
-        // Store the file in S3
-        $filePath = $this->fileProccessService->storeFileInS3($fileId, 'photos', $contact->id);
-
         return $contact->messages()->create([
             'direction' => 'in',
-            'message_type' => 'photo',
-            'message' => $caption,
-            'file_id' => $fileId,
-            'file_path' => $filePath,
+            'message_type' => 'text',
+            'message' => $text,
             'sent_at' => $sentAt,
         ]);
     }
-
-    public function requestPhoneNumber($chatId)
+    /**
+     * Save photo message from Telegram
+     */
+    private function savePhotoMessage(Contact $contact, $getPhoto, ?string $caption, string $sentAt)
     {
-        // Create reply keyboard for the share contact button
-        $replyKeyboard = Keyboard::make()
-            ->row([
-                Keyboard::button([
-                    'text' => '📱 Share Phone Number',
-                    'request_contact' => true
-                ])
-            ])
-            ->setResizeKeyboard(true)
-            ->setOneTimeKeyboard(true);
+        try {
+            if (empty($getPhoto)) {
+                return null;
+            }
 
-        // Then send the share contact button as a separate message
-        Telegram::sendMessage([
-            'chat_id' => $chatId,
-            'text' => 'សូមចុចប៊ូតុងខាងក្រោមដើម្បីចែករំលែកលេខទូរស័ព្ទរបស់អ្នក៖',
-            'reply_markup' => $replyKeyboard
-        ]);
+            $photo = $getPhoto->toArray();
+            $lastPhoto = end($photo);
+            $fileId = $lastPhoto['file_id'];
+
+            // Store the file in S3
+            $filePath = $this->fileProccessService->storeFileInS3($fileId, 'photos', $contact->id);
+            \Log::info('filePath: ', ['filePath' => $filePath]);
+            if (empty($filePath)) {
+                return null;
+            }
+            // Create a message record
+            return $contact->messages()->create([
+                'direction' => 'in',
+                'message_type' => 'photo',
+                'message' => $caption,
+                'file_id' => $fileId,
+                'file_path' => $filePath,
+                'sent_at' => $sentAt,
+            ]);
+        } catch (\Throwable $th) {
+            \Log::warning('error in save photo message', ['error' => $th]);
+            throw $th;
+        }
     }
 
+    private function handleVoiceMessage($message)
+    {
+        $voice = $message->getVoice();
+        $sentAt = $message->getDate();
+
+        \Log::info('handleVoice', context: ['voice' => $voice, 'sentAt' => $sentAt]);
+
+        return $this->saveVoiceMessage($this->contact, $voice, $sentAt);
+    }
+    /**
+     * Save voice message from Telegram
+     */
+    private function saveVoiceMessage(Contact $contact, $voice, string $sentAt)
+    {
+        try {
+            if (empty($voice)) {
+                return null;
+            }
+
+            $voiceData = $voice->toArray();
+            $fileId = $voiceData['file_id'];
+
+            // Store the file in S3
+            $filePath = $this->fileProccessService->storeFileInS3($fileId, 'voices', $contact->id);
+            \Log::info('voiceFilePath: ', ['filePath' => $filePath]);
+
+            if (empty($filePath)) {
+                return null;
+            }
+
+            // Create a message record
+            return $contact->messages()->create([
+                'direction' => 'in',
+                'message_type' => 'voice',
+                'file_id' => $fileId,
+                'file_path' => $filePath,
+                'sent_at' => $sentAt,
+                'duration' => $voiceData['duration'] ?? null,
+            ]);
+        } catch (\Throwable $th) {
+            \Log::warning('error in save voice message', ['error' => $th]);
+            throw $th;
+        }
+    }
+
+
+    // Update the handle method to call handleVoiceMessage
+    public function handleMessageType($message)
+    {
+
+        // Handle phone number sharing
+        if ($message->has('contact')) {
+            \Log::info('contact shared: ', ['message' => $message]);
+            $this->handleContactShared($message);
+        }
+
+        if ($message->has('location')) {
+            \Log::info('location shared: ', ['message' => $message]);
+        }
+
+        if ($message->has('photo')) {
+            \Log::info('photo shared: ', ['message' => $message]);
+            $this->handlePhotoMessage($message);
+        }
+
+        if ($message->has('voice')) {
+            \Log::info('voice shared: ', ['message' => $message]);
+            $this->handleVoiceMessage($message);  // Changed from just logging to actual handling
+        }
+
+        if ($message->has('video')) {
+            \Log::info('video shared: ', ['message' => $message]);
+        }
+        if ($message->has('document')) {
+            \Log::info('Document', ['message' => $message]);
+        }
+        if ($message->has('animation')) {
+            \Log::info('animation', ['message' => $message]);
+        }
+        if ($message->has('audio')) {
+            \Log::info('audio', ['message' => $message]);
+        }
+        if ($message->has('sticker')) {
+            \Log::info('sticker', ['message' => $message]);
+        }
+
+        // Save message (excluding command)
+        if (!str_starts_with($message->getText(), '/') && $message->has('text')) {
+            // save inbound message
+            $this->handleTextMessage($message);
+        }
+
+        Telegram::sendMessage([
+            'chat_id' => $this->chatId,
+            'text' => json_encode($message, JSON_PRETTY_PRINT)
+        ]);
+
+        return true;
+    }
 }
 

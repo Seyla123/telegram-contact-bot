@@ -15,12 +15,14 @@ return new class extends Migration {
             $table->foreignId('contact_id')->constrained();
             $table->enum('direction', ['in', 'out'])->default('in');
             $table->text('message')->nullable();
-            $table->enum('message_type', ['text', 'photo', 'video', 'audio', 'document', 'location'])->default('text');
+            $table->integer('media_group_id')->nullable();
+            $table->enum('message_type', ['text', 'photo', 'video', 'audio', 'document', 'location','voice'])->default('text');
             $table->string('file_id')->nullable();
             $table->string('file_path')->nullable();
             $table->timestamp('sent_at')->nullable();
             $table->enum('status', ['sent', 'delivered', 'read'])->default('sent');
             $table->bigInteger('thread_id')->nullable();
+            $table->integer('duration')->nullable();
             $table->boolean('is_admin')->default(false);
             $table->timestamps();
 

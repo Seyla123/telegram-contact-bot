@@ -16,10 +16,22 @@ class Message extends Model
         'file_path',
         'sent_at',
         'status',
+        'thread_id',
+        'is_admin',
     ];
 
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function thread()
+    {
+        return $this->belongsTo(Message::class, 'thread_id');
+    }
+
+    public function replies()
+    {
+        return $this->hasMany(Message::class, 'thread_id');
     }
 }

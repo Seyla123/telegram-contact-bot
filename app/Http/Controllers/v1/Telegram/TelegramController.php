@@ -72,12 +72,12 @@ class TelegramController extends Controller
             }
 
             foreach ($update as $key => $value) {
-                $this->telegramService->handle($value);
+                $this->telegramService->webhook($value);
             }
 
             return $this->successResponse($update, __('success'), 200);
         } catch (\Exception $e) {
-            \Log::error('Error in telegramUpdate: ' . $e->getMessage());
+            \Log::error('Error in telegram update: ' . $e->getMessage());
             return $this->errorResponse(__($e->getMessage()), 500);
         }
     }
@@ -90,7 +90,7 @@ class TelegramController extends Controller
         \Log::info('update: ', ['update' => $update]);
 
         if ($update->isType('message')) {
-            $this->telegramService->handle($update);
+            $this->telegramService->webhook($update);
         }
 
         return $this->successResponse($update, __('success'), 200);
