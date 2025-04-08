@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\Contact;
+use App\Models\Message;
 use App\Services\Telegram\FileProccessService;
 use App\Services\Telegram\TelegramService;
 use App\Services\Telegram\BotService;
@@ -100,5 +101,10 @@ class TelegramController extends Controller
     {
         $userContact = Contact::all();
         return $this->successResponse($userContact, __('success'), 200);
+    }
+    public function getAllMessage(): JsonResponse
+    {
+        $messages = Message::get();
+        return $this->successResponse($messages, __('success'), 200);
     }
 }

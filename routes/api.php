@@ -90,6 +90,7 @@ Route::prefix('v1')->group(function () {
         Route::get('bot', [TelegramController::class, 'getBot']);
         Route::post('webhook', [TelegramController::class, 'webhook']);
         Route::get('contact', [TelegramController::class, 'getAllContact']);
+        Route::get('message', [TelegramController::class, 'getAllMessage']);
 
         // for test me
     });

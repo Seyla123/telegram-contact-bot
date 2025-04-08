@@ -183,8 +183,105 @@ class TelegramService
         }
     }
 
+    private function handleDocumentMessage($message)
+    {
+        $document = $message->getDocument();
+        $caption = $message->getCaption();
+        $sentAt = $message->getDate();
 
-    // Update the handle method to call handleVoiceMessage
+        \Log::info('handleDocument', ['document' => $document, 'caption' => $caption, 'sentAt' => $sentAt]);
+
+        return $this->saveDocumentMessage($this->contact, $document, $caption, $sentAt);
+    }
+
+    /**
+     * Save document message from Telegram
+     */
+    private function saveDocumentMessage(Contact $contact, $document, ?string $caption, string $sentAt)
+    {
+        try {
+            if (empty($document)) {
+                return null;
+            }
+
+            $documentData = $document->toArray();
+            $fileId = $documentData['file_id'];
+
+            // Store the file in S3
+            $filePath = $this->fileProccessService->storeFileInS3($fileId, 'documents', $contact->id);
+            \Log::info('documentFilePath: ', ['filePath' => $filePath]);
+
+            if (empty($filePath)) {
+                return null;
+            }
+
+            // Create a message record
+            return $contact->messages()->create([
+                'direction' => 'in',
+                'message_type' => 'document',
+                'message' => $caption,
+                'file_id' => $fileId,
+                'file_path' => $filePath,
+                'file_name' => $documentData['file_name'] ?? null,
+                'sent_at' => $sentAt,
+            ]);
+        } catch (\Throwable $th) {
+            \Log::warning('error in save document message', ['error' => $th]);
+            throw $th;
+        }
+    }
+
+    private function handleAnimationMessage($message)
+    {
+        $animation = $message->getAnimation();
+        $caption = $message->getCaption();
+        $sentAt = $message->getDate();
+
+        \Log::info('handleAnimation', ['animation' => $animation, 'caption' => $caption, 'sentAt' => $sentAt]);
+
+        return $this->saveAnimationMessage($this->contact, $animation, $caption, $sentAt);
+    }
+
+    /**
+     * Save animation message from Telegram
+     */
+    private function saveAnimationMessage(Contact $contact, $animation, ?string $caption, string $sentAt)
+    {
+        try {
+            if (empty($animation)) {
+                return null;
+            }
+
+            $animationData = $animation->toArray();
+            $fileId = $animationData['file_id'];
+
+            // Store the file in S3
+            $filePath = $this->fileProccessService->storeFileInS3($fileId, 'animations', $contact->id);
+            \Log::info('animationFilePath: ', ['filePath' => $filePath]);
+
+            if (empty($filePath)) {
+                return null;
+            }
+
+            // Create a message record
+            return $contact->messages()->create([
+                'direction' => 'in',
+                'message_type' => 'animation',
+                'message' => $caption,
+                'file_id' => $fileId,
+                'file_path' => $filePath,
+                'file_name' => $animationData['file_name'] ?? null,
+                'mime_type' => $animationData['mime_type'] ?? null,
+                'file_size' => $animationData['file_size'] ?? null,
+                'sent_at' => $sentAt,
+            ]);
+        } catch (\Throwable $th) {
+            \Log::warning('error in save animation message', ['error' => $th]);
+            throw $th;
+        }
+    }
+
+    // Update the handleMessageType method to call handleAnimationMessage
     public function handleMessageType($message)
     {
 
@@ -208,15 +305,16 @@ class TelegramService
             $this->handleVoiceMessage($message);  // Changed from just logging to actual handling
         }
 
-        if ($message->has('video')) {
-            \Log::info('video shared: ', ['message' => $message]);
+        if ($message->has('document') & !$message->has('animation')) {
+            \Log::info('Document shared: ', ['message' => $message]);
+            $this->handleDocumentMessage($message);  // Changed from just logging to actual handling
         }
-        if ($message->has('document')) {
-            \Log::info('Document', ['message' => $message]);
-        }
+
         if ($message->has('animation')) {
-            \Log::info('animation', ['message' => $message]);
+            \Log::info('Animation shared: ', ['message' => $message]);
+            $this->handleAnimationMessage($message);  // Changed from just logging to actual handling
         }
+
         if ($message->has('audio')) {
             \Log::info('audio', ['message' => $message]);
         }
