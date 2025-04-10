@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Message;
 use App\Models\User;
+use App\Observers\MessageObserver;
 use App\Observers\UserObserver;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
@@ -28,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Register the observer
         User::observe(UserObserver::class);
+        Message::observe(MessageObserver::class);
     }
 }
