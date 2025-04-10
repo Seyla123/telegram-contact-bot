@@ -30,10 +30,14 @@ class NewTelegramMessage implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        $channel = 'user.' . $this->message->contact_id;
+        \Log::info('Broadcasting to channel: ' . $channel);
+
         return [
-            new PrivateChannel('user.' . $this->message->contact_id),
+            new PrivateChannel($channel),
         ];
     }
+
 
     public function broadcaseAs(): string
     {
