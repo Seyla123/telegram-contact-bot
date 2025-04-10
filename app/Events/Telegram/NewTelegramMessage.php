@@ -34,13 +34,21 @@ class NewTelegramMessage implements ShouldBroadcast
         \Log::info('Broadcasting to channel: ' . $channel);
 
         return [
-            new PrivateChannel($channel),
+            new Channel($channel)
         ];
     }
 
 
-    public function broadcaseAs(): string
+    public function broadcastAs(): string
     {
         return 'new_message';
+    }
+
+    public function broadcastWith()
+    {
+        $data = $this->message->toArray();
+        return [
+            'message' => $data
+        ];
     }
 }

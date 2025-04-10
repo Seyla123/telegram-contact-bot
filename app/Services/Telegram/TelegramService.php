@@ -131,6 +131,9 @@ class TelegramService
                 'file_id' => $fileId,
                 'file_path' => $filePath,
                 'sent_at' => $sentAt,
+                'width' => $lastPhoto['width'],
+                'height' => $lastPhoto['height'],
+                'file_size' => $lastPhoto['file_size'],
             ]);
         } catch (\Throwable $th) {
             \Log::warning('error in save photo message', ['error' => $th]);

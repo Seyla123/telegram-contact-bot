@@ -6,6 +6,7 @@ use App\Models\Message;
 use App\Models\User;
 use App\Observers\MessageObserver;
 use App\Observers\UserObserver;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
 
@@ -31,5 +32,11 @@ class AppServiceProvider extends ServiceProvider
         // Register the observer
         User::observe(UserObserver::class);
         Message::observe(MessageObserver::class);
+
+        Broadcast::routes();
+        // Broadcast::channel('user.{user_id}', function () {
+        //     \Log::info('User joined channel');
+        //     return true; // Allow any user to join the channel
+        // });
     }
 }
