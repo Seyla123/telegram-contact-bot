@@ -5,6 +5,7 @@ namespace App\Console\Commands\Telegram;
 use App\Events\Telegram\NewUserContact;
 use App\Models\Contact;
 use App\Services\Telegram\TelegramService;
+use Telegram\Bot\Actions;
 use Telegram\Bot\Commands\Command;
 
 class StartCommand extends Command
@@ -19,14 +20,20 @@ class StartCommand extends Command
     {
         $userId = $this->getUpdate()->getMessage()->getFrom()->getId();
 
-        $this->replyWithMessage([
-            'text' => 'Hey, there! Welcome to our bot!',
+        $this->replyWithChatAction([
+            'action' => Actions::TYPING
         ]);
+
+        $this->replyWithMessage([
+            'text' => 'Hello! Welcome to our bot, Here are our available commands:'
+        ]);
+    
+
 
         // Check if contact exists with phone number
         $contact = Contact::where('id', $userId)->first();
         \Log::info('this start command log:', ['contact' => $contact]);
-        
+
         if (!$contact || !$contact->phone_number) {
             event(new NewUserContact($userId));
             return;

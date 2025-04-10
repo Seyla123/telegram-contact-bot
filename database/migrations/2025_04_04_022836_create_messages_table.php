@@ -22,6 +22,8 @@ return new class extends Migration {
             $table->string('file_path')->nullable();
             $table->string('file_name')->nullable();
             $table->string('file_size')->nullable();
+            $table->integer('width')->nullable();
+            $table->integer('height')->nullable();
 
             $table->string('mime_type')->nullable();
             $table->timestamp('sent_at')->nullable();

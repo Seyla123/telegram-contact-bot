@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use Telegram\Bot\Laravel\Facades\Telegram;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use App\Models\Contact;
 use App\Models\Message;
 use App\Services\Telegram\FileProccessService;
@@ -19,7 +18,6 @@ class TelegramController extends Controller
 {
     public function __construct(private BotService $botService, private TelegramService $telegramService, private FileProccessService $fileProccessService)
     {
-
     }
     // Get current bot detail
     public function getBot()
@@ -102,9 +100,14 @@ class TelegramController extends Controller
         $userContact = Contact::all();
         return $this->successResponse($userContact, __('success'), 200);
     }
-    public function getAllMessage(): JsonResponse
+    public function getAllMessage(Request $request): JsonResponse
     {
-        $messages = Message::get();
+        $page = $request->query('page', 1);
+        $limit = $request->query('limit', 5);
+        
+        $messages = Message::latest()
+            ->paginate($limit, ['*'], 'page', $page);
+            
         return $this->successResponse($messages, __('success'), 200);
     }
 }

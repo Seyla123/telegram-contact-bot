@@ -14,10 +14,17 @@ class Message extends Model
         'message',
         'file_id',
         'file_path',
+        'file_size',
+        'file_name',
         'sent_at',
         'status',
         'thread_id',
         'is_admin',
+        'duration',
+        'mime_type',
+        'width',
+        'height',
+        'caption'  
     ];
 
     public function contact(): BelongsTo

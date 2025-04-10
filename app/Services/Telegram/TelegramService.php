@@ -162,7 +162,7 @@ class TelegramService
 
             // Store the file in S3
             $filePath = $this->fileProccessService->storeFileInS3($fileId, 'voices', $contact->id);
-            \Log::info('voiceFilePath: ', ['filePath' => $filePath]);
+            \Log::info('voiceFilePath: ', ['voiceData' => $voiceData['duration']]);
 
             if (empty($filePath)) {
                 return null;
@@ -176,12 +176,14 @@ class TelegramService
                 'file_path' => $filePath,
                 'sent_at' => $sentAt,
                 'duration' => $voiceData['duration'] ?? null,
+                'mime_type' => $voiceData['mime_type'] ?? null
             ]);
         } catch (\Throwable $th) {
             \Log::warning('error in save voice message', ['error' => $th]);
             throw $th;
         }
     }
+
 
     private function handleDocumentMessage($message)
     {
@@ -209,7 +211,7 @@ class TelegramService
 
             // Store the file in S3
             $filePath = $this->fileProccessService->storeFileInS3($fileId, 'documents', $contact->id);
-            \Log::info('documentFilePath: ', ['filePath' => $filePath]);
+            \Log::info('documentFilePath: ', ['filename' =>  $documentData['file_name']]);
 
             if (empty($filePath)) {
                 return null;
@@ -222,7 +224,9 @@ class TelegramService
                 'message' => $caption,
                 'file_id' => $fileId,
                 'file_path' => $filePath,
-                'file_name' => $documentData['file_name'] ?? null,
+                'file_name' => $documentData['file_name'],
+                'file_size' => $documentData['file_size'] ?? null,
+                'mime_type' => $documentData['mime_type'] ?? null,
                 'sent_at' => $sentAt,
             ]);
         } catch (\Throwable $th) {
@@ -273,6 +277,9 @@ class TelegramService
                 'file_name' => $animationData['file_name'] ?? null,
                 'mime_type' => $animationData['mime_type'] ?? null,
                 'file_size' => $animationData['file_size'] ?? null,
+                'width' => $animationData['width']?? null,
+                'height' => $animationData['height']?? null,
+                'duration' => $animationData['duration']?? null,
                 'sent_at' => $sentAt,
             ]);
         } catch (\Throwable $th) {
