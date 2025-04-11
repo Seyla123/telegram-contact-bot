@@ -4,6 +4,7 @@ namespace App\Http\Controllers\v1\Telegram;
 
 use App\Http\Controllers\Controller;
 
+use Telegram\Bot\FileUpload\InputFile;
 use Telegram\Bot\Laravel\Facades\Telegram;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,19 +96,73 @@ class TelegramController extends Controller
         return $this->successResponse($update, __('success'), 200);
     }
 
-    public function getAllContact(): JsonResponse
+    public function getAllContact(Request $request): JsonResponse
     {
-        $userContact = Contact::all();
+        $page = $request->query('page', 1);
+        $limit = $request->query('limit', 5);
+
+        $userContact = Contact::latest()
+            ->paginate($limit, ['*'], 'page', $page);
         return $this->successResponse($userContact, __('success'), 200);
     }
     public function getAllMessage(Request $request): JsonResponse
     {
+        $request->validate([
+            'chat_id' => 'required',
+        ]);
+
         $page = $request->query('page', 1);
         $limit = $request->query('limit', 5);
-        
-        $messages = Message::latest()
+        $chatId = $request->query('chat_id');
+
+        $messages = Message::where('contact_id', $chatId)
+            ->latest()
             ->paginate($limit, ['*'], 'page', $page);
-            
+
         return $this->successResponse($messages, __('success'), 200);
+    }
+
+
+    public function sendMessage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'chat_id' => 'required',
+            'text' => 'required|max:1024',
+        ]);
+        $response = Telegram::sendMessage([
+            'chat_id' => $request->chat_id,
+            'text' => $request->text,
+        ]);
+        
+        
+        $this->telegramService->handleSendMessageType($response, $request->chat_id);
+
+        return $this->successResponse($response, __('success'), 200);
+    }
+
+    public function sendPhoto(Request $request): JsonResponse
+    {
+        $request->validate([
+            'chat_id' => 'required|string',
+            'photo' => 'required|file',
+            'caption' => 'nullable|string|max:1024'
+        ]);
+
+        if ($request->hasFile('photo')) {
+            $photo = InputFile::createFromContents(
+                $request->file('photo')->getContent(),
+                $request->file('photo')->getClientOriginalName()
+            );
+        }
+
+        $message = Telegram::sendPhoto([
+            'chat_id' => $request->chat_id,
+            'photo' => $photo,
+            'caption' => $request->caption,
+        ]);
+
+        $response = $this->telegramService->handleSendMessageType($message, $request->chat_id);
+
+        return $this->successResponse($response, __('success'), 200);
     }
 }

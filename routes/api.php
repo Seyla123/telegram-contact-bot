@@ -71,7 +71,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/avatar', [ProfileController::class, 'updateAvatar']);
             });
         });
-        
+
         /**
          * ┌──────────────────────┐
          * │ Telegram Routes      │
@@ -91,6 +91,8 @@ Route::prefix('v1')->group(function () {
         Route::post('webhook', [TelegramController::class, 'webhook']);
         Route::get('contact', [TelegramController::class, 'getAllContact']);
         Route::get('message', [TelegramController::class, 'getAllMessage']);
+        Route::post('message', [TelegramController::class, 'sendMessage']);
+        Route::post('sendPhoto', [TelegramController::class, 'sendPhoto']);
 
         // for test me
     });

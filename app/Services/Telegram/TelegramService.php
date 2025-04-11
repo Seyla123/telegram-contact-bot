@@ -48,6 +48,7 @@ class TelegramService
         return true;
     }
 
+
     private function handleContactShared($message)
     {
         $contactData = $message->getContact();
@@ -68,7 +69,7 @@ class TelegramService
         ]);
     }
 
-    private function handlePhotoMessage($message)
+    private function handlePhotoMessage($message, $direction)
     {
         $photos = $message->getPhoto();
         $caption = $message->getCaption();
@@ -76,7 +77,7 @@ class TelegramService
 
         \Log::info('handlePhoto', ['photos' => $photos, 'caption' => $caption, 'sentAt' => $sentAt]);
         // Save the photo message
-        $photo = $this->savePhotoMessage($this->contact, $photos, $caption, $sentAt);
+        $photo = $this->savePhotoMessage($this->contact, $photos, $caption, $sentAt, $direction);
 
         \Log::info('photo: ', ['photo' => $photo]);
 
@@ -84,20 +85,20 @@ class TelegramService
 
     }
 
-    private function handleTextMessage($message)
+    private function handleTextMessage($message, $direction)
     {
         $text = $message->getText();
         $sentAt = $message->getDate();
-        return $this->saveTextMessage($this->contact, $text, $sentAt);
+        return $this->saveTextMessage($this->contact, $text, $sentAt, $direction);
     }
 
     /**
      * Save text message from Telegram
      */
-    private function saveTextMessage(Contact $contact, $text, $sentAt)
+    private function saveTextMessage(Contact $contact, $text, $sentAt, $direction)
     {
         return $contact->messages()->create([
-            'direction' => 'in',
+            'direction' => $direction,
             'message_type' => 'text',
             'message' => $text,
             'sent_at' => $sentAt,
@@ -106,7 +107,7 @@ class TelegramService
     /**
      * Save photo message from Telegram
      */
-    private function savePhotoMessage(Contact $contact, $getPhoto, ?string $caption, string $sentAt)
+    private function savePhotoMessage(Contact $contact, $getPhoto, ?string $caption, string $sentAt, $direction)
     {
         try {
             if (empty($getPhoto)) {
@@ -125,7 +126,7 @@ class TelegramService
             }
             // Create a message record
             return $contact->messages()->create([
-                'direction' => 'in',
+                'direction' => $direction,
                 'message_type' => 'photo',
                 'message' => $caption,
                 'file_id' => $fileId,
@@ -141,19 +142,19 @@ class TelegramService
         }
     }
 
-    private function handleVoiceMessage($message)
+    private function handleVoiceMessage($message, $direction)
     {
         $voice = $message->getVoice();
         $sentAt = $message->getDate();
 
         \Log::info('handleVoice', context: ['voice' => $voice, 'sentAt' => $sentAt]);
 
-        return $this->saveVoiceMessage($this->contact, $voice, $sentAt);
+        return $this->saveVoiceMessage($this->contact, $voice, $sentAt, $direction);
     }
     /**
      * Save voice message from Telegram
      */
-    private function saveVoiceMessage(Contact $contact, $voice, string $sentAt)
+    private function saveVoiceMessage(Contact $contact, $voice, string $sentAt, $direction)
     {
         try {
             if (empty($voice)) {
@@ -173,7 +174,7 @@ class TelegramService
 
             // Create a message record
             return $contact->messages()->create([
-                'direction' => 'in',
+                'direction' => $direction,
                 'message_type' => 'voice',
                 'file_id' => $fileId,
                 'file_path' => $filePath,
@@ -188,7 +189,7 @@ class TelegramService
     }
 
 
-    private function handleDocumentMessage($message)
+    private function handleDocumentMessage($message, $direction)
     {
         $document = $message->getDocument();
         $caption = $message->getCaption();
@@ -196,13 +197,13 @@ class TelegramService
 
         \Log::info('handleDocument', ['document' => $document, 'caption' => $caption, 'sentAt' => $sentAt]);
 
-        return $this->saveDocumentMessage($this->contact, $document, $caption, $sentAt);
+        return $this->saveDocumentMessage($this->contact, $document, $caption, $sentAt, $direction);
     }
 
     /**
      * Save document message from Telegram
      */
-    private function saveDocumentMessage(Contact $contact, $document, ?string $caption, string $sentAt)
+    private function saveDocumentMessage(Contact $contact, $document, ?string $caption, string $sentAt, $direction)
     {
         try {
             if (empty($document)) {
@@ -214,7 +215,7 @@ class TelegramService
 
             // Store the file in S3
             $filePath = $this->fileProccessService->storeFileInS3($fileId, 'documents', $contact->id);
-            \Log::info('documentFilePath: ', ['filename' =>  $documentData['file_name']]);
+            \Log::info('documentFilePath: ', ['filename' => $documentData['file_name']]);
 
             if (empty($filePath)) {
                 return null;
@@ -222,7 +223,7 @@ class TelegramService
 
             // Create a message record
             return $contact->messages()->create([
-                'direction' => 'in',
+                'direction' => $direction,
                 'message_type' => 'document',
                 'message' => $caption,
                 'file_id' => $fileId,
@@ -238,7 +239,7 @@ class TelegramService
         }
     }
 
-    private function handleAnimationMessage($message)
+    private function handleAnimationMessage($message, $direction)
     {
         $animation = $message->getAnimation();
         $caption = $message->getCaption();
@@ -246,13 +247,13 @@ class TelegramService
 
         \Log::info('handleAnimation', ['animation' => $animation, 'caption' => $caption, 'sentAt' => $sentAt]);
 
-        return $this->saveAnimationMessage($this->contact, $animation, $caption, $sentAt);
+        return $this->saveAnimationMessage($this->contact, $animation, $caption, $sentAt, $direction);
     }
 
     /**
      * Save animation message from Telegram
      */
-    private function saveAnimationMessage(Contact $contact, $animation, ?string $caption, string $sentAt)
+    private function saveAnimationMessage(Contact $contact, $animation, ?string $caption, string $sentAt, $direction)
     {
         try {
             if (empty($animation)) {
@@ -280,9 +281,9 @@ class TelegramService
                 'file_name' => $animationData['file_name'] ?? null,
                 'mime_type' => $animationData['mime_type'] ?? null,
                 'file_size' => $animationData['file_size'] ?? null,
-                'width' => $animationData['width']?? null,
-                'height' => $animationData['height']?? null,
-                'duration' => $animationData['duration']?? null,
+                'width' => $animationData['width'] ?? null,
+                'height' => $animationData['height'] ?? null,
+                'duration' => $animationData['duration'] ?? null,
                 'sent_at' => $sentAt,
             ]);
         } catch (\Throwable $th) {
@@ -292,7 +293,7 @@ class TelegramService
     }
 
     // Update the handleMessageType method to call handleAnimationMessage
-    public function handleMessageType($message)
+    public function handleMessageType($message, $direction = "in")
     {
 
         // Handle phone number sharing
@@ -307,22 +308,22 @@ class TelegramService
 
         if ($message->has('photo')) {
             \Log::info('photo shared: ', ['message' => $message]);
-            $this->handlePhotoMessage($message);
+            $this->handlePhotoMessage($message, $direction);
         }
 
         if ($message->has('voice')) {
             \Log::info('voice shared: ', ['message' => $message]);
-            $this->handleVoiceMessage($message);  // Changed from just logging to actual handling
+            $this->handleVoiceMessage($message, $direction);  // Changed from just logging to actual handling
         }
 
         if ($message->has('document') & !$message->has('animation')) {
             \Log::info('Document shared: ', ['message' => $message]);
-            $this->handleDocumentMessage($message);  // Changed from just logging to actual handling
+            $this->handleDocumentMessage($message, $direction);  // Changed from just logging to actual handling
         }
 
         if ($message->has('animation')) {
             \Log::info('Animation shared: ', ['message' => $message]);
-            $this->handleAnimationMessage($message);  // Changed from just logging to actual handling
+            $this->handleAnimationMessage($message, $direction);  // Changed from just logging to actual handling
         }
 
         if ($message->has('audio')) {
@@ -335,15 +336,31 @@ class TelegramService
         // Save message (excluding command)
         if (!str_starts_with($message->getText(), '/') && $message->has('text')) {
             // save inbound message
-            $this->handleTextMessage($message);
+            $this->handleTextMessage($message, $direction);
         }
 
-        Telegram::sendMessage([
-            'chat_id' => $this->chatId,
-            'text' => json_encode($message, JSON_PRETTY_PRINT)
-        ]);
+        // Telegram::sendMessage([
+        //     'chat_id' => $this->chatId,
+        //     'text' => json_encode($message, JSON_PRETTY_PRINT)
+        // ]);
 
         return true;
     }
+
+    // handle send message to telegram
+    public function handleSendMessageType($message, $chat_id)
+    {
+        $this->contact = Contact::find($chat_id)->first();
+        $this->chatId = $chat_id;
+        $this->userId = $chat_id;
+
+        if (!$this->contact) {
+            throw new \Exception('Contact not found');
+        }
+        // return $this->handlePhotoMessage($message, 'out');
+        return $this->handleMessageType($message, 'out');
+    }
+
+
 }
 
